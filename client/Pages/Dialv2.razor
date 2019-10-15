@@ -1,0 +1,93 @@
+@page "/dial"
+@namespace System.ComponentModel.DataAnnotations
+
+<EditForm Model="Input" OnValidSubmit="InitiatePhoneCall">
+    <DataAnnotationsValidator />
+    <ValidationSummary />
+
+    <p>
+        <label for="phoneNumber">Enter Phone Number:</label>
+        <InputText id="phoneNumber" @bind-Value="Input.PhoneNumber"></InputText>
+        <button type="submit" class="btn btn-primary" disabled="@IsDialDisabled">DIAL</button>
+        <button type="button" id="endBtn" class="btn btn-primary" disabled="@IsEndDisabled" @onclick="EndPhoneCall">END</button>
+        <button type="button" id="clearBtn" class="btn btn-primary" disabled="@IsClearDisabled" @onclick="ClearPhoneNumber">CLEAR</button>
+    </p>
+</EditForm>
+
+<hr />
+
+<input class="w-100 vh-100 align-top" type="text" readonly @bind="Log" />
+
+@code {
+    private string _tokenUrl = "<REPLACE_YOUR_NGROK_URL_HERE>";
+
+    protected bool IsDialDisabled { get; set; } = false;
+    protected bool IsEndDisabled { get { return !IsDialDisabled; } }
+
+    protected bool IsClearDisabled { get { return string.IsNullOrEmpty(Input.PhoneNumber); } }
+    protected string Log { get; set; } = "";
+
+    protected InputModel Input { get; set; } = new InputModel();
+    [Inject]
+    protected IJSRuntime JSRuntime { get; set; }
+    [Inject]
+    protected IHttpClientFactory HttpClientFactory { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        var token = await GetClientToken();
+        await JSRuntime.InvokeVoidAsync("appFunctions.setup", token);
+    }
+
+    protected async Task InitiatePhoneCall()
+    {
+        IsDialDisabled = true;
+        await LogMessage($"Calling the number: {Input.PhoneNumber}");
+        await JSRuntime.InvokeVoidAsync("appFunctions.placeCall", Input.PhoneNumber);
+        await LogMessage($"Called the number: {Input.PhoneNumber}");
+        StateHasChanged();
+    }
+
+    protected async Task EndPhoneCall()
+    {
+        IsDialDisabled = false;
+        await LogMessage($"Ending the call to : {Input.PhoneNumber}");
+        await JSRuntime.InvokeVoidAsync("appFunctions.endCall");
+        await LogMessage($"Ended the call to : {Input.PhoneNumber}");
+        StateHasChanged();
+
+    }
+
+    protected async Task ClearPhoneNumber()
+    {
+        await LogMessage("Clearing the phone number entry");
+        Input.PhoneNumber = string.Empty;
+        await LogMessage("Cleared the phone number entry");
+        StateHasChanged();
+    }
+
+    private async Task<string> GetClientToken()
+    {
+        var uri = new Uri(_tokenUrl);
+
+        using var client = HttpClientFactory.CreateClient();
+        var response = await client.GetAsync(uri);
+
+        response.EnsureSuccessStatusCode();
+        return await response.Content.ReadAsStringAsync();
+    }
+
+    [JSInvokable]
+    public async Task LogMessage(string message)
+    {
+        Log += $"\r\n{DateTimeOffset.Now} - {message}";
+        await Task.CompletedTask;
+    }
+
+    public class InputModel
+    {
+        [Required]
+        [Phone(ErrorMessage ="Please enter your phone number in a proper format")]
+        public string PhoneNumber { get; set; }
+    }
+}

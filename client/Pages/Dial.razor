@@ -16,16 +16,29 @@
 
 <hr />
 
-<input class="w-100 vh-100 align-top" type="text" readonly @bind="Log" />
+@if (Logs.Count == 0)
+{
+    <p>No Logs available yet</p>
+}
+else
+{
+    <ul>
+        @foreach(var log in Logs)
+        {
+            <li>@log</li>
+        }
+    </ul>
+}
 
 @code {
-    private string _tokenUrl = "<REPLACE_YOUR_NGROK_URL_HERE>";
+    private string _tokenUrl = "<REPLACE_WITH_NGROK_URL>";
+    private bool appSetupRun = false;
 
     protected bool IsDialDisabled { get; set; } = false;
     protected bool IsEndDisabled { get { return !IsDialDisabled; } }
 
     protected bool IsClearDisabled { get { return string.IsNullOrEmpty(Input.PhoneNumber); } }
-    protected string Log { get; set; } = "";
+    protected List<string> Logs { get; set; } = new List<string>();
 
     protected InputModel Input { get; set; } = new InputModel();
     [Inject]
@@ -33,27 +46,31 @@
     [Inject]
     protected IHttpClientFactory HttpClientFactory { get; set; }
 
-    protected override async Task OnInitializedAsync()
+ protected override async Task OnAfterRenderAsync(bool firstRender)
     {
-        var token = await GetClientToken();
-        await JSRuntime.InvokeVoidAsync("appFunctions.setup", token);
+        if (firstRender && !appSetupRun)
+        {
+            var token = await GetClientToken();
+            await JSRuntime.InvokeVoidAsync("appFunctions.setup", token);
+            appSetupRun = true;
+        }
     }
 
     protected async Task InitiatePhoneCall()
     {
         IsDialDisabled = true;
-        await LogMessage($"Calling the number: {Input.PhoneNumber}");
+        await LogMessage($"Calling the number {Input.PhoneNumber}");
         await JSRuntime.InvokeVoidAsync("appFunctions.placeCall", Input.PhoneNumber);
-        await LogMessage($"Called the number: {Input.PhoneNumber}");
+        await LogMessage($"Called the number {Input.PhoneNumber}");
         StateHasChanged();
     }
 
     protected async Task EndPhoneCall()
     {
         IsDialDisabled = false;
-        await LogMessage($"Ending the call to : {Input.PhoneNumber}");
+        await LogMessage($"Ending the call to {Input.PhoneNumber}");
         await JSRuntime.InvokeVoidAsync("appFunctions.endCall");
-        await LogMessage($"Ended the call to : {Input.PhoneNumber}");
+        await LogMessage($"Ended the call to {Input.PhoneNumber}");
         StateHasChanged();
 
     }
@@ -80,7 +97,7 @@
     [JSInvokable]
     public async Task LogMessage(string message)
     {
-        Log += $"\r\n{DateTimeOffset.Now} - {message}";
+        Logs.Add($"{DateTimeOffset.Now} - {message}");
         await Task.CompletedTask;
     }
 

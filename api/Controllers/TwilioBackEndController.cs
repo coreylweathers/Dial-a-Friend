@@ -1,8 +1,5 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
+﻿using System.Collections.Generic;
 using System.Threading.Tasks;
-using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Twilio.Jwt;
 using Twilio.Jwt.Client;
@@ -16,20 +13,22 @@ namespace api.Controllers
     [ApiController]
     public class TwilioBackEndController : ControllerBase
     {
+        public readonly string AccountSid = "<REPLACE_ACCOUNT_SID_HERE>";
+        public readonly string AuthToken = "<REPLACE_AUTH_TOKEN_HERE>";
+        public readonly string PhoneNumber = "<REPLACE_PHONE_NUMBER_HERE>";
+        public readonly string AppSid = "<REPLACE_APP_SID_HERE>";
+
+
         [HttpGet("token")]
         public async Task<IActionResult> GetToken()
         {
-            const string ACCOUNTSID = "<REPLACE_ACCOUNT_SID_HERE>";
-            const string AUTHTOKEN = "<REPLACE_AUTH_TOKEN_HERE>";
-            const string APPSID = "<REPLACE_APP_SID_HERE>";
-
             var scopes = new HashSet<IScope>
             {
-                new OutgoingClientScope(APPSID),
+                new OutgoingClientScope(AppSid),
                 new IncomingClientScope("tester")
             };
 
-            var capability = new ClientCapability(ACCOUNTSID, AUTHTOKEN, scopes: scopes);
+            var capability = new ClientCapability(AccountSid, AuthToken, scopes: scopes);
             return await Task.FromResult(Content(capability.ToJwt(), "application/jwt"));
         }
 
@@ -41,7 +40,7 @@ namespace api.Controllers
             var response = new VoiceResponse();
             var dial = new Twilio.TwiML.Voice.Dial
             {
-                CallerId = "<REPLACE_YOUR_TWILIO_NUMBER_HERE>"
+                CallerId = PhoneNumber
             };
             dial.Number(new PhoneNumber(destination));
 

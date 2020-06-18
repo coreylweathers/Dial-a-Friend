@@ -11,6 +11,7 @@ using System.Threading.Tasks;
 
 namespace client.Components
 {
+    // TODO: Change DialComponent code behind
     public class DialComponent : ComponentBase
     {
 

@@ -13,6 +13,7 @@ namespace api.Controllers
     [ApiController]
     public class TwilioBackEndController : ControllerBase
     {
+        // TODO: Read Twilio Account Settings from Config class
         public readonly string AccountSid = "<REPLACE_ACCOUNT_SID_HERE>";
         public readonly string AuthToken = "<REPLACE_AUTH_TOKEN_HERE>";
         public readonly string PhoneNumber = "<REPLACE_PHONE_NUMBER_HERE>";
